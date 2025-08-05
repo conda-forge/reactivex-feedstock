@@ -6,22 +6,22 @@ package:
   version: {{ version }}
 
 source:
-  url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/reactivex-{{ version }}.tar.gz
+  url: https://pypi.org/packages/source/{{ name[0] }}/{{ name }}/reactivex-{{ version }}.tar.gz
   sha256: e912e6591022ab9176df8348a653fe8c8fa7a301f26f9931c9d8c78a650e04e8
 
 build:
   noarch: python
   script: {{ PYTHON }} -m pip install . -vv
-  number: 0
+  number: 1
 
 requirements:
   host:
-    - python >=3.7,<4.0
+    - python {{ python_min }}
     - poetry-core >=1.0.0
     - pip
   run:
-    - python >=3.7,<4.0
-    - typing-extensions >=4.1.1, <5.0.0
+    - python >={{ python_min }},<4.0a0
+    - typing-extensions >=4.1.1,<5.0.0a0
 
 test:
   imports:
@@ -30,6 +30,7 @@ test:
     - pip check
   requires:
     - pip
+    - python {{ python_min }}
 
 about:
   home: http://reactivex.io
