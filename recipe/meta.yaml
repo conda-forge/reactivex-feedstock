@@ -8,11 +8,14 @@ package:
 source:
   url: https://pypi.org/packages/source/{{ name[0] }}/{{ name }}/reactivex-{{ version }}.tar.gz
   sha256: e912e6591022ab9176df8348a653fe8c8fa7a301f26f9931c9d8c78a650e04e8
+  patches:
+    # https://github.com/ReactiveX/RxPY/pull/716
+    - 716-patch_calls_to_datetime_utc.patch
 
 build:
   noarch: python
   script: {{ PYTHON }} -m pip install . -vv
-  number: 1
+  number: 2
 
 requirements:
   host:

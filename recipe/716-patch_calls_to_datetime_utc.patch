@@ -1,0 +1,504 @@
+From 951d1a69362f1ddd6e70e9254880410a39200f74 Mon Sep 17 00:00:00 2001
+From: Ricardo Branco <rbranco@suse.de>
+Date: Tue, 21 May 2024 12:27:37 +0200
+Subject: [PATCH] Fix deprecated calls to datetime
+
+---
+ examples/marbles/hot_datetime.py               |  2 +-
+ reactivex/internal/basic.py                    |  4 ++--
+ reactivex/internal/constants.py                |  4 ++--
+ reactivex/operators/__init__.py                |  4 ++--
+ reactivex/scheduler/scheduler.py               |  4 ++--
+ tests/test_observable/test_delay.py            | 12 ++++++------
+ .../test_observable/test_skipuntilwithtime.py  | 18 +++++++++---------
+ .../test_observable/test_takeuntilwithtime.py  | 18 +++++++++---------
+ tests/test_observable/test_timeout.py          | 12 ++++++------
+ tests/test_observable/test_timestamp.py        |  4 ++--
+ .../test_eventloop/test_asyncioscheduler.py    |  4 ++--
+ .../test_asynciothreadsafescheduler.py         |  4 ++--
+ .../test_eventloop/test_eventletscheduler.py   |  4 ++--
+ .../test_eventloop/test_geventscheduler.py     |  4 ++--
+ .../test_eventloop/test_ioloopscheduler.py     |  4 ++--
+ .../test_eventloop/test_twistedscheduler.py    |  4 ++--
+ 16 files changed, 53 insertions(+), 53 deletions(-)
+
+diff --git a/examples/marbles/hot_datetime.py b/examples/marbles/hot_datetime.py
+index 841837d18..2a06f66bb 100644
+--- a/examples/marbles/hot_datetime.py
++++ b/examples/marbles/hot_datetime.py
+@@ -7,7 +7,7 @@
+ Delay the emission of elements to the specified datetime.
+ """
+ 
+-now = datetime.datetime.utcnow()
++now = datetime.datetime.now(datetime.timezone.utc)
+ dt = datetime.timedelta(seconds=3.0)
+ duetime = now + dt
+ 
+diff --git a/reactivex/internal/basic.py b/reactivex/internal/basic.py
+index bb59e8f9e..d7f043c19 100644
+--- a/reactivex/internal/basic.py
++++ b/reactivex/internal/basic.py
+@@ -1,4 +1,4 @@
+-from datetime import datetime
++from datetime import datetime, timezone
+ from typing import Any, NoReturn, TypeVar, Union
+ 
+ _T = TypeVar("_T")
+@@ -14,7 +14,7 @@ def identity(x: _T) -> _T:
+ 
+ 
+ def default_now() -> datetime:
+-    return datetime.utcnow()
++    return datetime.now(timezone.utc)
+ 
+ 
+ def default_comparer(x: _T, y: _T) -> bool:
+diff --git a/reactivex/internal/constants.py b/reactivex/internal/constants.py
+index 1062d06ab..b2e186eb4 100644
+--- a/reactivex/internal/constants.py
++++ b/reactivex/internal/constants.py
+@@ -1,4 +1,4 @@
+-from datetime import datetime, timedelta
++from datetime import datetime, timedelta, timezone
+ 
+ DELTA_ZERO = timedelta(0)
+-UTC_ZERO = datetime.utcfromtimestamp(0)
++UTC_ZERO = datetime.fromtimestamp(0, tz=timezone.utc)
+diff --git a/reactivex/operators/__init__.py b/reactivex/operators/__init__.py
+index 76bd13c0c..0983dfa22 100644
+--- a/reactivex/operators/__init__.py
++++ b/reactivex/operators/__init__.py
+@@ -2917,7 +2917,7 @@ def skip_until_with_time(
+     Args:
+         start_time: Time to start taking elements from the source
+             sequence. If this value is less than or equal to
+-            `datetime.utcnow()`, no elements will be skipped.
++            `datetime.now(timezone.utc)`, no elements will be skipped.
+ 
+     Returns:
+         An operator function that takes an observable source and
+@@ -3622,7 +3622,7 @@ def take_until_with_time(
+     Args:
+         end_time: Time to stop taking elements from the source
+             sequence. If this value is less than or equal to
+-            `datetime.utcnow()`, the result stream will complete
++            `datetime.now(timezone.utc)`, the result stream will complete
+             immediately.
+         scheduler: Scheduler to run the timer on.
+ 
+diff --git a/reactivex/scheduler/scheduler.py b/reactivex/scheduler/scheduler.py
+index 84d4251aa..a47dc0497 100644
+--- a/reactivex/scheduler/scheduler.py
++++ b/reactivex/scheduler/scheduler.py
+@@ -1,5 +1,5 @@
+ from abc import abstractmethod
+-from datetime import datetime, timedelta
++from datetime import datetime, timedelta, timezone
+ from typing import Optional, TypeVar
+ 
+ from reactivex import abc, typing
+@@ -145,7 +145,7 @@ def to_datetime(cls, value: typing.AbsoluteOrRelativeTime) -> datetime:
+         if isinstance(value, timedelta):
+             value = UTC_ZERO + value
+         elif not isinstance(value, datetime):
+-            value = datetime.utcfromtimestamp(value)
++            value = datetime.fromtimestamp((value), tz=timezone.utc)
+ 
+         return value
+ 
+diff --git a/tests/test_observable/test_delay.py b/tests/test_observable/test_delay.py
+index b1c665bae..d11000bb9 100644
+--- a/tests/test_observable/test_delay.py
++++ b/tests/test_observable/test_delay.py
+@@ -1,6 +1,6 @@
+ import logging
+ import unittest
+-from datetime import datetime
++from datetime import datetime, timezone
+ 
+ from reactivex.operators import delay
+ from reactivex.testing import ReactiveTest, TestScheduler
+@@ -62,7 +62,7 @@ def test_delay_datetime_offset_simple1_impl(self):
+         )
+ 
+         def create():
+-            dt = datetime.utcfromtimestamp(300.0)
++            dt = datetime.fromtimestamp(300.0, tz=timezone.utc)
+             return xs.pipe(delay(dt))
+ 
+         results = scheduler.start(create)
+@@ -107,7 +107,7 @@ def test_delay_datetime_offset_simple2_impl(self):
+         )
+ 
+         def create():
+-            return xs.pipe(delay(datetime.utcfromtimestamp(250)))
++            return xs.pipe(delay(datetime.fromtimestamp(250, tz=timezone.utc)))
+ 
+         results = scheduler.start(create)
+ 
+@@ -153,7 +153,7 @@ def test_delay_datetime_offset_simple3_impl(self):
+         )
+ 
+         def create():
+-            return xs.pipe(delay(datetime.utcfromtimestamp(350)))
++            return xs.pipe(delay(datetime.fromtimestamp(350, tz=timezone.utc)))
+ 
+         results = scheduler.start(create)
+ 
+@@ -201,7 +201,7 @@ def test_delay_datetime_offset_error1_impl(self):
+         )
+ 
+         def create():
+-            return xs.pipe(delay(datetime.utcfromtimestamp(250)))
++            return xs.pipe(delay(datetime.fromtimestamp(250, tz=timezone.utc)))
+ 
+         results = scheduler.start(create)
+ 
+@@ -244,7 +244,7 @@ def test_delay_datetime_offset_error2_impl(self):
+         )
+ 
+         def create():
+-            return xs.pipe(delay(datetime.utcfromtimestamp(350)))
++            return xs.pipe(delay(datetime.fromtimestamp(350, tz=timezone.utc)))
+ 
+         results = scheduler.start(create)
+ 
+diff --git a/tests/test_observable/test_skipuntilwithtime.py b/tests/test_observable/test_skipuntilwithtime.py
+index 7c37ee4d9..16ee01c2f 100644
+--- a/tests/test_observable/test_skipuntilwithtime.py
++++ b/tests/test_observable/test_skipuntilwithtime.py
+@@ -1,5 +1,5 @@
+ import unittest
+-from datetime import datetime
++from datetime import datetime, timezone
+ 
+ from reactivex import operators as ops
+ from reactivex.testing import ReactiveTest, TestScheduler
+@@ -21,7 +21,7 @@ def test_skipuntil_zero(self):
+         )
+ 
+         def create():
+-            return xs.pipe(ops.skip_until_with_time(datetime.utcfromtimestamp(0)))
++            return xs.pipe(ops.skip_until_with_time(datetime.fromtimestamp(0, tz=timezone.utc)))
+ 
+         res = scheduler.start(create)
+ 
+@@ -35,7 +35,7 @@ def test_skipuntil_late(self):
+         )
+ 
+         def create():
+-            return xs.pipe(ops.skip_until_with_time(datetime.utcfromtimestamp(250)))
++            return xs.pipe(ops.skip_until_with_time(datetime.fromtimestamp(250, tz=timezone.utc)))
+ 
+         res = scheduler.start(create)
+ 
+@@ -48,7 +48,7 @@ def test_skipuntil_error(self):
+         xs = scheduler.create_hot_observable(on_error(210, ex))
+ 
+         def create():
+-            return xs.pipe(ops.skip_until_with_time(datetime.utcfromtimestamp(250)))
++            return xs.pipe(ops.skip_until_with_time(datetime.fromtimestamp(250, tz=timezone.utc)))
+ 
+         res = scheduler.start(create)
+ 
+@@ -60,7 +60,7 @@ def test_skipuntil_never(self):
+         xs = scheduler.create_hot_observable()
+ 
+         def create():
+-            return xs.pipe(ops.skip_until_with_time(datetime.utcfromtimestamp(250)))
++            return xs.pipe(ops.skip_until_with_time(datetime.fromtimestamp(250, tz=timezone.utc)))
+ 
+         res = scheduler.start(create)
+ 
+@@ -81,8 +81,8 @@ def test_skipuntil_twice1(self):
+ 
+         def create():
+             return xs.pipe(
+-                ops.skip_until_with_time(datetime.utcfromtimestamp(215)),
+-                ops.skip_until_with_time(datetime.utcfromtimestamp(230)),
++                ops.skip_until_with_time(datetime.fromtimestamp(215, tz=timezone.utc)),
++                ops.skip_until_with_time(datetime.fromtimestamp(230, tz=timezone.utc)),
+             )
+ 
+         res = scheduler.start(create)
+@@ -109,8 +109,8 @@ def test_skipuntil_twice2(self):
+ 
+         def create():
+             return xs.pipe(
+-                ops.skip_until_with_time(datetime.utcfromtimestamp(230)),
+-                ops.skip_until_with_time(datetime.utcfromtimestamp(215)),
++                ops.skip_until_with_time(datetime.fromtimestamp(230, tz=timezone.utc)),
++                ops.skip_until_with_time(datetime.fromtimestamp(215, tz=timezone.utc)),
+             )
+ 
+         res = scheduler.start(create)
+diff --git a/tests/test_observable/test_takeuntilwithtime.py b/tests/test_observable/test_takeuntilwithtime.py
+index 7370a3e5a..8a4a3456e 100644
+--- a/tests/test_observable/test_takeuntilwithtime.py
++++ b/tests/test_observable/test_takeuntilwithtime.py
+@@ -1,5 +1,5 @@
+ import unittest
+-from datetime import datetime
++from datetime import datetime, timezone
+ 
+ from reactivex import operators as ops
+ from reactivex.testing import ReactiveTest, TestScheduler
+@@ -30,7 +30,7 @@ def test_takeuntil_zero(self):
+         )
+ 
+         def create():
+-            return xs.pipe(ops.take_until_with_time(datetime.utcfromtimestamp(0)))
++            return xs.pipe(ops.take_until_with_time(datetime.fromtimestamp(0)), tz=timezone.utc)
+ 
+         res = scheduler.start(create)
+ 
+@@ -44,7 +44,7 @@ def test_takeuntil_late(self):
+         )
+ 
+         def create():
+-            dt = datetime.utcfromtimestamp(250)
++            dt = datetime.fromtimestamp(250, tz=timezone.utc)
+             return xs.pipe(ops.take_until_with_time(dt))
+ 
+         res = scheduler.start(create)
+@@ -58,7 +58,7 @@ def test_takeuntil_error(self):
+         xs = scheduler.create_hot_observable(on_error(210, ex))
+ 
+         def create():
+-            dt = datetime.utcfromtimestamp(250)
++            dt = datetime.fromtimestamp(250, tz=timezone.utc)
+             return xs.pipe(ops.take_until_with_time(dt))
+ 
+         res = scheduler.start(create)
+@@ -71,7 +71,7 @@ def test_takeuntil_never(self):
+         xs = scheduler.create_hot_observable()
+ 
+         def create():
+-            dt = datetime.utcfromtimestamp(250)
++            dt = datetime.fromtimestamp(250, tz=timezone.utc)
+             return xs.pipe(ops.take_until_with_time(dt))
+ 
+         res = scheduler.start(create)
+@@ -92,8 +92,8 @@ def test_takeuntil_twice1(self):
+         )
+ 
+         def create():
+-            dt235 = datetime.utcfromtimestamp(235)
+-            dt255 = datetime.utcfromtimestamp(255)
++            dt235 = datetime.fromtimestamp(235, tz=timezone.utc)
++            dt255 = datetime.fromtimestamp(255, tz=timezone.utc)
+             return xs.pipe(
+                 ops.take_until_with_time(dt255),
+                 ops.take_until_with_time(dt235),
+@@ -122,8 +122,8 @@ def test_takeuntil_twice2(self):
+         )
+ 
+         def create():
+-            dt235 = datetime.utcfromtimestamp(235)
+-            dt255 = datetime.utcfromtimestamp(255)
++            dt235 = datetime.fromtimestamp(235, tz=timezone.utc)
++            dt255 = datetime.fromtimestamp(255, tz=timezone.utc)
+             return xs.pipe(
+                 ops.take_until_with_time(dt235),
+                 ops.take_until_with_time(dt255),
+diff --git a/tests/test_observable/test_timeout.py b/tests/test_observable/test_timeout.py
+index 70caa6443..2c978b27f 100644
+--- a/tests/test_observable/test_timeout.py
++++ b/tests/test_observable/test_timeout.py
+@@ -1,5 +1,5 @@
+ import unittest
+-from datetime import datetime
++from datetime import datetime, timezone
+ 
+ from reactivex import operators as ops
+ from reactivex.testing import ReactiveTest, TestScheduler
+@@ -241,7 +241,7 @@ def test_timeout_datetime_offset_timeout_occurs(self):
+         ys = scheduler.create_cold_observable(on_next(100, -1))
+ 
+         def create():
+-            return xs.pipe(ops.timeout(datetime.utcfromtimestamp(400), ys))
++            return xs.pipe(ops.timeout(datetime.fromtimestamp(400, tz=timezone.utc), ys))
+ 
+         results = scheduler.start(create)
+ 
+@@ -255,7 +255,7 @@ def test_timeout_datetime_offset_timeout_does_not_occur_completed(self):
+         ys = scheduler.create_cold_observable(on_next(100, -1))
+ 
+         def create():
+-            return xs.pipe(ops.timeout(datetime.utcfromtimestamp(400), ys))
++            return xs.pipe(ops.timeout(datetime.fromtimestamp(400, tz=timezone.utc), ys))
+ 
+         results = scheduler.start(create)
+ 
+@@ -270,7 +270,7 @@ def test_timeout_datetime_offset_timeout_does_not_occur_error(self):
+         ys = scheduler.create_cold_observable(on_next(100, -1))
+ 
+         def create():
+-            return xs.pipe(ops.timeout(datetime.utcfromtimestamp(400), ys))
++            return xs.pipe(ops.timeout(datetime.fromtimestamp(400, tz=timezone.utc), ys))
+ 
+         results = scheduler.start(create)
+ 
+@@ -286,7 +286,7 @@ def test_timeout_datetime_offset_timeout_occur_2(self):
+         ys = scheduler.create_cold_observable(on_next(100, -1))
+ 
+         def create():
+-            return xs.pipe(ops.timeout(datetime.utcfromtimestamp(400), ys))
++            return xs.pipe(ops.timeout(datetime.fromtimestamp(400, tz=timezone.utc), ys))
+ 
+         results = scheduler.start(create)
+ 
+@@ -302,7 +302,7 @@ def test_timeout_datetime_offset_timeout_occur_3(self):
+         ys = scheduler.create_cold_observable()
+ 
+         def create():
+-            return xs.pipe(ops.timeout(datetime.utcfromtimestamp(400), ys))
++            return xs.pipe(ops.timeout(datetime.fromtimestamp(400, tz=timezone.utc), ys))
+ 
+         results = scheduler.start(create)
+ 
+diff --git a/tests/test_observable/test_timestamp.py b/tests/test_observable/test_timestamp.py
+index 87fff722b..1d5b5e22d 100644
+--- a/tests/test_observable/test_timestamp.py
++++ b/tests/test_observable/test_timestamp.py
+@@ -1,5 +1,5 @@
+ import unittest
+-from datetime import datetime
++from datetime import datetime, timezone
+ 
+ import reactivex
+ from reactivex import operators as ops
+@@ -17,7 +17,7 @@
+ class Timestamp(object):
+     def __init__(self, value, timestamp):
+         if isinstance(timestamp, datetime):
+-            timestamp = timestamp - datetime.utcfromtimestamp(0)
++            timestamp = timestamp - datetime.fromtimestamp(0, tz=timezone.utc)
+             timestamp = int(
+                 timestamp.seconds
+             )  # FIXME: Must fix when tests run at fraction of seconds.
+diff --git a/tests/test_scheduler/test_eventloop/test_asyncioscheduler.py b/tests/test_scheduler/test_eventloop/test_asyncioscheduler.py
+index 5131f8e1e..e6a9622d8 100644
+--- a/tests/test_scheduler/test_eventloop/test_asyncioscheduler.py
++++ b/tests/test_scheduler/test_eventloop/test_asyncioscheduler.py
+@@ -1,7 +1,7 @@
+ import asyncio
+ import os
+ import unittest
+-from datetime import datetime, timedelta
++from datetime import datetime, timedelta, timezone
+ 
+ import pytest
+ 
+@@ -15,7 +15,7 @@ class TestAsyncIOScheduler(unittest.TestCase):
+     def test_asyncio_schedule_now(self):
+         loop = asyncio.get_event_loop()
+         scheduler = AsyncIOScheduler(loop)
+-        diff = scheduler.now - datetime.utcfromtimestamp(loop.time())
++        diff = scheduler.now - datetime.fromtimestamp(loop.time(), tz=timezone.utc)
+         assert abs(diff) < timedelta(milliseconds=2)  # NOTE: may take 1 ms in CI
+ 
+     @pytest.mark.skipif(CI, reason="Test is flaky in GitHub Actions")
+diff --git a/tests/test_scheduler/test_eventloop/test_asynciothreadsafescheduler.py b/tests/test_scheduler/test_eventloop/test_asynciothreadsafescheduler.py
+index 18e30d445..12f75ac47 100644
+--- a/tests/test_scheduler/test_eventloop/test_asynciothreadsafescheduler.py
++++ b/tests/test_scheduler/test_eventloop/test_asynciothreadsafescheduler.py
+@@ -2,7 +2,7 @@
+ import os
+ import threading
+ import unittest
+-from datetime import datetime, timedelta
++from datetime import datetime, timedelta, timezone
+ 
+ import pytest
+ 
+@@ -16,7 +16,7 @@ class TestAsyncIOThreadSafeScheduler(unittest.TestCase):
+     def test_asyncio_threadsafe_schedule_now(self):
+         loop = asyncio.get_event_loop()
+         scheduler = AsyncIOThreadSafeScheduler(loop)
+-        diff = scheduler.now - datetime.utcfromtimestamp(loop.time())
++        diff = scheduler.now - datetime.fromtimestamp(loop.time(), tz=timezone.utc)
+         assert abs(diff) < timedelta(milliseconds=2)
+ 
+     @pytest.mark.skipif(CI, reason="Flaky test in GitHub Actions")
+diff --git a/tests/test_scheduler/test_eventloop/test_eventletscheduler.py b/tests/test_scheduler/test_eventloop/test_eventletscheduler.py
+index 6d7adb1f2..777a66af9 100644
+--- a/tests/test_scheduler/test_eventloop/test_eventletscheduler.py
++++ b/tests/test_scheduler/test_eventloop/test_eventletscheduler.py
+@@ -1,6 +1,6 @@
+ import os
+ import unittest
+-from datetime import datetime, timedelta
++from datetime import datetime, timedelta, timezone
+ from time import sleep
+ 
+ import pytest
+@@ -16,7 +16,7 @@ class TestEventletScheduler(unittest.TestCase):
+     def test_eventlet_schedule_now(self):
+         scheduler = EventletScheduler(eventlet)
+         hub = eventlet.hubs.get_hub()
+-        diff = scheduler.now - datetime.utcfromtimestamp(hub.clock())
++        diff = scheduler.now - datetime.fromtimestamp(hub.clock(), tz=timezone.utc)
+         assert abs(diff) < timedelta(milliseconds=1)
+ 
+     @pytest.mark.skipif(CI, reason="Flaky test in GitHub Actions")
+diff --git a/tests/test_scheduler/test_eventloop/test_geventscheduler.py b/tests/test_scheduler/test_eventloop/test_geventscheduler.py
+index 8934a9e61..0f5983243 100644
+--- a/tests/test_scheduler/test_eventloop/test_geventscheduler.py
++++ b/tests/test_scheduler/test_eventloop/test_geventscheduler.py
+@@ -1,5 +1,5 @@
+ import unittest
+-from datetime import datetime, timedelta
++from datetime import datetime, timedelta, timezone
+ 
+ import pytest
+ 
+@@ -12,7 +12,7 @@ class TestGEventScheduler(unittest.TestCase):
+     def test_gevent_schedule_now(self):
+         scheduler = GEventScheduler(gevent)
+         hub = gevent.get_hub()
+-        diff = scheduler.now - datetime.utcfromtimestamp(hub.loop.now())
++        diff = scheduler.now - datetime.fromtimestamp(hub.loop.now(), tz=timezone.utc)
+         assert abs(diff) < timedelta(milliseconds=1)
+ 
+     def test_gevent_schedule_now_units(self):
+diff --git a/tests/test_scheduler/test_eventloop/test_ioloopscheduler.py b/tests/test_scheduler/test_eventloop/test_ioloopscheduler.py
+index fe5dd3d0e..d1d01f342 100644
+--- a/tests/test_scheduler/test_eventloop/test_ioloopscheduler.py
++++ b/tests/test_scheduler/test_eventloop/test_ioloopscheduler.py
+@@ -1,5 +1,5 @@
+ import unittest
+-from datetime import datetime, timedelta
++from datetime import datetime, timedelta, timezone
+ from time import sleep
+ 
+ import pytest
+@@ -14,7 +14,7 @@ class TestIOLoopScheduler(unittest.TestCase):
+     def test_ioloop_schedule_now(self):
+         loop = ioloop.IOLoop.instance()
+         scheduler = IOLoopScheduler(loop)
+-        diff = scheduler.now - datetime.utcfromtimestamp(loop.time())
++        diff = scheduler.now - datetime.fromtimestamp(loop.time(), tz=timezone.utc)
+         assert abs(diff) < timedelta(milliseconds=1)
+ 
+     def test_ioloop_schedule_now_units(self):
+diff --git a/tests/test_scheduler/test_eventloop/test_twistedscheduler.py b/tests/test_scheduler/test_eventloop/test_twistedscheduler.py
+index a6786305c..894d1d9a7 100644
+--- a/tests/test_scheduler/test_eventloop/test_twistedscheduler.py
++++ b/tests/test_scheduler/test_eventloop/test_twistedscheduler.py
+@@ -1,4 +1,4 @@
+-from datetime import datetime, timedelta
++from datetime import datetime, timedelta, timezone
+ from time import sleep
+ 
+ import pytest
+@@ -13,7 +13,7 @@
+ class TestTwistedScheduler(unittest.TestCase):
+     def test_twisted_schedule_now(self):
+         scheduler = TwistedScheduler(reactor)
+-        diff = scheduler.now - datetime.utcfromtimestamp(float(reactor.seconds()))
++        diff = scheduler.now - datetime.fromtimestamp(float(reactor.seconds()), tz=timezone.utc)
+         assert abs(diff) < timedelta(milliseconds=1)
+ 
+     def test_twisted_schedule_now_units(self):
