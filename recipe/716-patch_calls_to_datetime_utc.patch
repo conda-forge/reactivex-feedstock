@@ -1,0 +1,53 @@
+diff --git a/reactivex/internal/constants.py b/reactivex/internal/constants.py
+index 1062d06ab..b2e186eb4 100644
+--- a/reactivex/internal/constants.py
++++ b/reactivex/internal/constants.py
+@@ -1,4 +1,4 @@
+-from datetime import datetime, timedelta
++from datetime import datetime, timedelta, timezone
+ 
+ DELTA_ZERO = timedelta(0)
+-UTC_ZERO = datetime.utcfromtimestamp(0)
++UTC_ZERO = datetime.fromtimestamp(0, tz=timezone.utc)
+diff --git a/reactivex/operators/__init__.py b/reactivex/operators/__init__.py
+index 76bd13c0c..0983dfa22 100644
+--- a/reactivex/operators/__init__.py
++++ b/reactivex/operators/__init__.py
+@@ -2917,7 +2917,7 @@ def skip_until_with_time(
+     Args:
+         start_time: Time to start taking elements from the source
+             sequence. If this value is less than or equal to
+-            `datetime.utcnow()`, no elements will be skipped.
++            `datetime.now(timezone.utc)`, no elements will be skipped.
+ 
+     Returns:
+         An operator function that takes an observable source and
+@@ -3622,7 +3622,7 @@ def take_until_with_time(
+     Args:
+         end_time: Time to stop taking elements from the source
+             sequence. If this value is less than or equal to
+-            `datetime.utcnow()`, the result stream will complete
++            `datetime.now(timezone.utc)`, the result stream will complete
+             immediately.
+         scheduler: Scheduler to run the timer on.
+ 
+diff --git a/reactivex/scheduler/scheduler.py b/reactivex/scheduler/scheduler.py
+index 84d4251aa..a47dc0497 100644
+--- a/reactivex/scheduler/scheduler.py
++++ b/reactivex/scheduler/scheduler.py
+@@ -1,5 +1,5 @@
+ from abc import abstractmethod
+-from datetime import datetime, timedelta
++from datetime import datetime, timedelta, timezone
+ from typing import Optional, TypeVar
+ 
+ from reactivex import abc, typing
+@@ -145,7 +145,7 @@ def to_datetime(cls, value: typing.AbsoluteOrRelativeTime) -> datetime:
+         if isinstance(value, timedelta):
+             value = UTC_ZERO + value
+         elif not isinstance(value, datetime):
+-            value = datetime.utcfromtimestamp(value)
++            value = datetime.fromtimestamp((value), tz=timezone.utc)
+ 
+         return value
+ 
