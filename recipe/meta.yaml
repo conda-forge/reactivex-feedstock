@@ -1,5 +1,5 @@
 {% set name = "reactivex" %}
-{% set version = "4.1.0" %}
+{% set version = "5.0.0" %}
 
 package:
   name: {{ name|lower }}
@@ -7,7 +7,7 @@ package:
 
 source:
   url: https://pypi.org/packages/source/{{ name[0] }}/{{ name }}/reactivex-{{ version }}.tar.gz
-  sha256: c7499e3c802bccaa20839b3e17355a7d939573fded3f38ba3d4796278a169a3d
+  sha256: 3b027c16e0476a2d3a81e8ee5780389cb16164b9e6eaae6a1df6ad796aa03a22
 
 build:
   noarch: python
