@@ -1,4 +1,4 @@
-{% set version = "6.0.0" %}
+{% set version = "6.1.0" %}
 
 package:
   name: reactivex
@@ -6,7 +6,7 @@ package:
 
 source:
   url: https://files.pythonhosted.org/packages/source/r/reactivex/reactivex-{{ version }}.tar.gz
-  sha256: 843ce6a7d8aa82bf369915e1e2c9e19154dbd30c7974ee981fd90edd88bd9fcf
+  sha256: 09c856a3d727a08331e891d4af360b8a0069f34391957f21e417e62ffe81518c
 
 build:
   noarch: python
